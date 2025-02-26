@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -115,62 +115,49 @@ namespace CbrConverter
         /// <param name="e"></param>
         private void tbox_SourceFile_Click(object sender, EventArgs e)
         {
-            var SelectFolderDlg = new FolderBrowserDialogEx();
-            SelectFolderDlg.Description = "Select a file or folder:"; //message
-            SelectFolderDlg.ShowNewFolderButton = true;
-            SelectFolderDlg.ShowEditBox = false;                     //editbox 
-            SelectFolderDlg.ShowBothFilesAndFolders = true;          //show files and folders
-            SelectFolderDlg.RootFolder = System.Environment.SpecialFolder.MyComputer; //start from computer
-
-            DialogResult result = SelectFolderDlg.ShowDialog();
-            if (result == DialogResult.OK)
+            using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
-                DataAccess.Instance.g_WorkingDir = SelectFolderDlg.SelectedPath;
-                tbox_SourceFile.Text = SelectFolderDlg.SelectedPath;
+                openFileDialog.Filter = "CBZ veya CBR Dosyaları (*.cbz;*.cbr)|*.cbz;*.cbr|Tüm Dosyalar (*.*)|*.*";
+                openFileDialog.FilterIndex = 1; // Varsayılan olarak CBZ/CBR filtresini seç
+                openFileDialog.Multiselect = false; // Sadece tek dosya seçimine izin ver
+                openFileDialog.CheckFileExists = true; // Dosya varlığını kontrol et
+                openFileDialog.CheckPathExists = true; // Yol varlığını kontrol et
+                openFileDialog.Title = "Bir CBZ veya CBR Dosyası Seçin"; // Pencere başlığını ayarla
 
-                //check if file or folder
-                if (File.Exists(DataAccess.Instance.g_WorkingDir)) //is a file
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    //check the extension
-                    var ext = Path.GetExtension(SelectFolderDlg.SelectedPath).ToLower();
-                    if (ext == ".pdf")
-                    {
-                        chk_cbr2pdf.Checked = false;
-                        chk_cbr2pdf.Enabled = false;
-                        chk_pdf2cbr.Checked = true;
-                        chk_pdf2cbr.Enabled = true;
-                        chk_JoinImages.Enabled = true;
+                    string selectedFilePath = openFileDialog.FileName;
+                    DataAccess.Instance.g_WorkingDir = selectedFilePath;
+                    tbox_SourceFile.Text = selectedFilePath;
+                    _fileSelected = true;
 
-                    }
-                    else if (ext == ".cbr" || ext == ".cbz")
+                    // Dosya uzantısını kontrol et
+                    string ext = Path.GetExtension(selectedFilePath).ToLower();
+                    if (ext == ".cbz" || ext == ".cbr")
                     {
                         chk_cbr2pdf.Checked = true;
                         chk_cbr2pdf.Enabled = true;
                         chk_pdf2cbr.Checked = false;
                         chk_pdf2cbr.Enabled = false;
                         chk_JoinImages.Enabled = false;
+
+                        if (this.chk_SourceFolder.Checked)
+                        {
+                            _outputFolderSelected = true;
+                            DataAccess.Instance.g_Output_dir = Path.GetDirectoryName(selectedFilePath);
+                            this.tbox_OuputFolder.Text = DataAccess.Instance.g_Output_dir;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Lütfen bir CBZ veya CBR dosyası seçin.", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        _fileSelected = false;
                     }
                 }
-                else //is a folder
-                {
-                    chk_cbr2pdf.Checked = true;
-                    chk_cbr2pdf.Enabled = true;
-                    chk_pdf2cbr.Checked = true;
-                    chk_pdf2cbr.Enabled = true;
-                }
-
-                _fileSelected = true;
-
-                if (this.chk_SourceFolder.Checked)
-                {
-                    _outputFolderSelected = true;
-                    DataAccess.Instance.g_Output_dir = Path.GetDirectoryName(SelectFolderDlg.SelectedPath);
-                    this.tbox_OuputFolder.Text = this.tbox_SourceFile.Text;
-                }
             }
-
         }
-
+        
+        
         private void Form1_Load(object sender, EventArgs e)
         {
             tbox_SourceFile.SelectionStart = 0;
